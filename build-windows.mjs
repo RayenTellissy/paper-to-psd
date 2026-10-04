@@ -8,7 +8,7 @@ import * as ResEdit from "resedit"
 import { buildIco } from "./icon.mjs"
 
 const NODE_VERSION = "22.22.2"
-const VERSION = "1.0.0"
+const VERSION = JSON.parse(readFileSync("package.json", "utf8")).version
 const OUT = "build"
 const EXE = `${OUT}/Paper to PSD.exe`
 const SEA_FUSE = "NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"
