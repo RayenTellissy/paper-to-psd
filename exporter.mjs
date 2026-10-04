@@ -7,7 +7,7 @@ import { readFileSync, writeFileSync, unlinkSync, mkdirSync } from "node:fs"
 import { homedir } from "node:os"
 import { join, resolve } from "node:path"
 import { resolveTextStyle, buildTextData } from "./text-layer.mjs"
-import { blurRadius, withoutBlur, buildSmartLayer } from "./smart-blur.mjs"
+import { blurRadius, withoutBlur, buildSmartLayer, FILTER_MASK } from "./smart-blur.mjs"
 import { shapeLayerProps, hasBoxShadow } from "./shape-layer.mjs"
 
 export const DEFAULT_OUT = join(homedir(), "Downloads")
@@ -256,7 +256,7 @@ export const connect = async () => {
       await call("delete_nodes", { fileId, nodeIds: [copy.newId] })
     }
 
-    const psd = { width: composite.width, height: composite.height, imageData: toImageData(composite), children: layers, ...(linkedFiles.length && { linkedFiles, filterEffectsMasks, filterMask: { colorSpace: { r: 255, g: 0, b: 0 }, opacity: 0.5 } }) }
+    const psd = { width: composite.width, height: composite.height, imageData: toImageData(composite), children: layers, ...(linkedFiles.length && { linkedFiles, filterEffectsMasks, filterMask: FILTER_MASK }) }
     mkdirSync(outDir, { recursive: true })
     const safeName = artboard.name.replace(/[/\\:*?"<>|]/g, "-")
     const outPath = resolve(outDir, `${safeName}${scale === 1 ? "" : `@${scale}x`}.psd`)

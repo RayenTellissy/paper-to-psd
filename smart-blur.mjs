@@ -39,12 +39,15 @@ const rle = (rgba, width, height, offset) => ({
   data: writeDataRLE(new Uint8Array(width * height * 2 + height * 4 + 1024), { data: rgba, width, height }, [offset], true),
 })
 const filterCache = ({ id, doc, left, top, width, height, rgba }) => {
+  // Transparent areas are white, as in Photoshop's own caches.
   const canvas = new Uint8ClampedArray(doc.width * doc.height * 4)
+  for (let i = 0; i < canvas.length; i += 4) canvas.set([255, 255, 255, 0], i)
   const x0 = Math.max(0, left), x1 = Math.min(doc.width, left + width)
   for (let y = Math.max(0, top); y < Math.min(doc.height, top + height); y++) {
-    if (x1 <= x0) break
-    const from = ((y - top) * width + (x0 - left)) * 4
-    canvas.set(rgba.subarray(from, from + (x1 - x0) * 4), (y * doc.width + x0) * 4)
+    for (let x = x0; x < x1; x++) {
+      const from = ((y - top) * width + (x - left)) * 4
+      if (rgba[from + 3]) canvas.set(rgba.subarray(from, from + 4), (y * doc.width + x) * 4)
+    }
   }
   const white = new Uint8ClampedArray(doc.width * doc.height * 4).fill(255)
   const bounds = { top: 0, left: 0, bottom: doc.height, right: doc.width }
@@ -56,6 +59,10 @@ const filterCache = ({ id, doc, left, top, width, height, rgba }) => {
     extra: { ...bounds, ...rle(white, doc.width, doc.height, 0) },
   }
 }
+
+// Photoshop stores the filter mask overlay opacity as a percentage and always writes 50; ag-psd scales 0-1 to
+// 0-255, so 0.5 would become 127, which Photoshop rejects with a program error when opening the file.
+export const FILTER_MASK = { colorSpace: { r: 255, g: 0, b: 0 }, opacity: 50.5 / 255 }
 
 const px = (value) => ({ units: "Pixels", value })
 
