@@ -1,6 +1,6 @@
 {
   "name": "paper-to-psd",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Export Paper artboards as layered Photoshop files with editable text, shapes and blur",
   "scripts": {
     "build:windows": "node build-windows.mjs",

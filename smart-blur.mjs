@@ -31,11 +31,12 @@ const gaussianBlur = (radius) => ({
 })
 
 // Smart filters keep a cache of the Smart Object's unfiltered pixels (R, G, B, alpha) plus a white filter mask.
-// Like Photoshop, both cover the whole document and are RLE-compressed. Every mask is identical, which also
+// Like Photoshop, both cover the whole document and are RLE-compressed with 4-byte row lengths (even inside a
+// regular PSD; 2-byte lengths make Photoshop fail to open the file). Every mask is identical, which also
 // sidesteps ag-psd writing the last mask's extra block for all of them.
 const rle = (rgba, width, height, offset) => ({
   compressionMode: 1,
-  data: writeDataRLE(new Uint8Array(width * height * 2 + height * 4 + 1024), { data: rgba, width, height }, [offset], false),
+  data: writeDataRLE(new Uint8Array(width * height * 2 + height * 4 + 1024), { data: rgba, width, height }, [offset], true),
 })
 const filterCache = ({ id, doc, left, top, width, height, rgba }) => {
   const canvas = new Uint8ClampedArray(doc.width * doc.height * 4)
