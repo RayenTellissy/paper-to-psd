@@ -1,0 +1,21 @@
+{
+  "name": "paper-to-psd",
+  "version": "1.0.0",
+  "description": "Export Paper artboards as layered Photoshop files with editable text, shapes and blur",
+  "scripts": {
+    "build:windows": "node build-windows.mjs",
+    "build:mac": "node build-mac.mjs"
+  },
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "ag-psd": "^31.0.2",
+    "pngjs": "^7.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "resedit": "^3.1.0"
+  },
+  "private": true
+}

@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paper to PSD</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f6f6f4;
+    --line: #e6e6e2;
+    --text: #141414;
+    --muted: #6b6b66;
+    --accent: #1d5cff;
+    --accent-ink: #ffffff;
+    --ok: #13804d;
+    --err: #c8283c;
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161616;
+      --surface: #1f1f1f;
+      --line: #2e2e2e;
+      --text: #f2f2f0;
+      --muted: #9a9a94;
+      --accent: #5b8bff;
+      --ok: #3fbf7f;
+      --err: #ff6577;
+    }
+  }
+  * { box-sizing: border-box; margin: 0 }
+  html, body { height: 100% }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.01em }
+  .file { color: var(--muted) }
+  .spacer { flex: 1 }
+  select, button, input { font: inherit; color: inherit }
+  select {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px 10px;
+    max-width: 280px;
+  }
+  .ghost {
+    background: none;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  .ghost:hover { background: var(--surface) }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 24px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .link { background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; font-size: 13px }
+  main { flex: 1; overflow: auto; padding: 4px 24px 24px }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px }
+  .card {
+    position: relative;
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--bg);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .card:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)) }
+  .card.on { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent) }
+  .thumb {
+    aspect-ratio: 16 / 10;
+    background: var(--surface) center / contain no-repeat;
+    border-bottom: 1px solid var(--line);
+  }
+  .meta { padding: 10px 12px 12px; display: flex; gap: 10px; align-items: flex-start }
+  .check {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    border-radius: 5px;
+    border: 1.5px solid var(--line);
+    display: grid;
+    place-items: center;
+  }
+  .card.on .check { background: var(--accent); border-color: var(--accent) }
+  .card.on .check::after { content: ""; width: 9px; height: 5px; border: 2px solid var(--accent-ink); border-top: 0; border-right: 0; transform: rotate(-45deg) translate(1px, -1px) }
+  .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+  .dims { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums }
+  .status { font-size: 12px; margin-top: 4px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+  .status.ok { color: var(--ok) }
+  .status.err { color: var(--err); white-space: normal }
+  .bar { position: absolute; left: 0; right: 0; top: 0; height: 3px; background: transparent }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s }
+  footer {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 14px 24px;
+    border-top: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 2px }
+  .seg button { border: 0; background: none; padding: 4px 12px; border-radius: 6px; cursor: pointer; color: var(--muted); font-variant-numeric: tabular-nums }
+  .seg button.on { background: var(--bg); color: var(--text); box-shadow: 0 1px 2px rgb(0 0 0 / .12) }
+  .field { display: flex; align-items: center; gap: 8px; color: var(--muted) }
+  .folder { color: var(--text); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .primary {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: 0;
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .primary:disabled { opacity: .45; cursor: default }
+  .empty { padding: 80px 0; text-align: center; color: var(--muted) }
+  .empty strong { display: block; color: var(--text); font-size: 16px; margin-bottom: 6px }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Paper to PSD</h1>
+    <span class="file" id="file"></span>
+    <span class="spacer"></span>
+    <select id="page" aria-label="Page"></select>
+    <button class="ghost" id="refresh" title="Reload from Paper">Refresh</button>
+  </header>
+
+  <div class="toolbar">
+    <span id="count"></span>
+    <button class="link" id="all">Select all</button>
+    <button class="link" id="none">Clear</button>
+  </div>
+
+  <main><div class="grid" id="grid"></div></main>
+
+  <footer>
+    <div class="field">Scale
+      <div class="seg" id="scale">
+        <button data-v="1" class="on">1x</button><button data-v="2">2x</button><button data-v="3">3x</button>
+      </div>
+    </div>
+    <div class="field">Layers
+      <div class="seg" id="layers">
+        <button data-v="nested" class="on" title="Frames become folders, every text and shape its own layer">Grouped</button><button data-v="flat" title="One layer per top-level element">Flat</button>
+      </div>
+    </div>
+    <label class="field"><input type="checkbox" id="bg" checked> Background layer</label>
+    <div class="field">Save to <span class="folder" id="folder"></span> <button class="link" id="choose">Change…</button></div>
+    <span class="spacer"></span>
+    <button class="primary" id="export" disabled>Export</button>
+  </footer>
+
+<script>
+  const $ = (id) => document.getElementById(id)
+  const state = { data: null, selected: new Set(), scale: 1, nested: true, outDir: "", busy: false }
+
+  const pref = (key, fallback) => {
+    try { return localStorage.getItem(key) ?? fallback } catch { return fallback }
+  }
+  const savePref = (key, value) => {
+    try { localStorage.setItem(key, value) } catch {}
+  }
+
+  const api = async (path, opts) => {
+    const res = await fetch(path, opts)
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? res.statusText)
+    return res
+  }
+
+  const showEmpty = (title, text) => {
+    $("grid").innerHTML = `<div class="empty" style="grid-column: 1 / -1"><strong>${title}</strong>${text}</div>`
+  }
+
+  const load = async (pageId) => {
+    showEmpty("Loading…", "Reading your Paper file")
+    try {
+      const data = await (await api(`/api/overview${pageId ? `?page=${encodeURIComponent(pageId)}` : ""}`)).json()
+      state.data = data
+      state.outDir ||= pref("outDir", data.defaultOut)
+      state.selected = new Set(data.selected.filter((id) => data.artboards.some((a) => a.id === id)))
+      render()
+    } catch (err) {
+      showEmpty("Can't reach Paper", `${err.message}<br><br>Open Paper, then hit Refresh.`)
+    }
+  }
+
+  const cards = new Map()
+
+  const render = () => {
+    const { data } = state
+    $("file").textContent = data.file.name
+    $("page").innerHTML = data.pages.map((p) => `<option value="${p.id}" ${p.id === data.pageId ? "selected" : ""}>${escape(p.name)}</option>`).join("")
+    $("folder").textContent = shortPath(state.outDir)
+    $("folder").title = state.outDir
+    cards.clear()
+    if (!data.artboards.length) return showEmpty("No artboards on this page", "Pick another page above.")
+    $("grid").innerHTML = ""
+    const stamp = Date.now()
+    for (const a of data.artboards) {
+      const el = document.createElement("div")
+      el.className = "card"
+      el.innerHTML = `
+        <div class="bar"><i></i></div>
+        <div class="thumb" style="background-image:url('/api/thumb?file=${data.file.id}&id=${a.id}&v=${stamp}')"></div>
+        <div class="meta">
+          <span class="check"></span>
+          <div style="min-width:0;flex:1">
+            <div class="name" title="${escape(a.name)}">${escape(a.name)}</div>
+            <div class="dims">${a.width ?? "?"} × ${a.height ?? "?"}</div>
+            <div class="status"></div>
+          </div>
+        </div>`
+      el.onclick = (e) => {
+        if (state.busy || e.target.closest(".status")) return
+        state.selected.has(a.id) ? state.selected.delete(a.id) : state.selected.add(a.id)
+        sync()
+      }
+      $("grid").append(el)
+      cards.set(a.id, el)
+    }
+    sync()
+  }
+
+  const sync = () => {
+    for (const [id, el] of cards) el.classList.toggle("on", state.selected.has(id))
+    const n = state.selected.size
+    $("count").textContent = `${n} of ${state.data?.artboards.length ?? 0} selected`
+    $("export").disabled = !n || state.busy
+    $("export").textContent = state.busy ? "Exporting…" : n > 1 ? `Export ${n} PSDs` : "Export PSD"
+  }
+
+  const shortPath = (p) => p.replace(/^\/Users\/[^/]+/, "~").replace(/^[A-Z]:\\Users\\[^\\]+/i, "~")
+  const escape = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
+
+  const setStatus = (id, text, kind = "", pct = null) => {
+    const el = cards.get(id)
+    if (!el) return
+    const status = el.querySelector(".status")
+    status.className = `status ${kind}`
+    status.innerHTML = text
+    if (pct !== null) el.querySelector(".bar i").style.width = `${pct}%`
+  }
+
+  const runExport = async () => {
+    const { data } = state
+    const artboards = data.artboards.filter((a) => state.selected.has(a.id))
+    state.busy = true
+    sync()
+    for (const a of artboards) setStatus(a.id, "Waiting…", "", 0)
+    try {
+      const res = await api("/api/export", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ fileId: data.file.id, artboards, scale: state.scale, nested: state.nested, background: $("bg").checked, outDir: state.outDir }),
+      })
+      const reader = res.body.pipeThrough(new TextDecoderStream()).getReader()
+      let buf = ""
+      for (;;) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buf += value
+        const lines = buf.split("\n")
+        buf = lines.pop()
+        for (const line of lines.filter(Boolean)) handle(JSON.parse(line))
+      }
+    } catch (err) {
+      alert(err.message)
+    }
+    state.busy = false
+    sync()
+  }
+
+  const handle = (e) => {
+    if (e.type === "start") setStatus(e.id, "Starting…", "", 2)
+    if (e.type === "progress") setStatus(e.id, `${e.done}/${e.total} · ${escape(e.layer)}`, "", Math.round((e.done / e.total) * 95))
+    if (e.type === "error") setStatus(e.id, escape(e.error), "err", 0)
+    if (e.type === "done") {
+      setStatus(e.id, `Saved · <button class="link" data-path="${escape(e.path)}">${escape(state.data?.revealLabel ?? "Show in Finder")}</button>`, "ok", 100)
+      cards.get(e.id).querySelector("[data-path]").onclick = (ev) => {
+        ev.stopPropagation()
+        api("/api/reveal", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: e.path }) })
+      }
+    }
+  }
+
+  $("export").onclick = runExport
+  $("refresh").onclick = () => load(state.data?.pageId)
+  $("page").onchange = (e) => load(e.target.value)
+  $("all").onclick = () => { if (!state.busy) { state.data.artboards.forEach((a) => state.selected.add(a.id)); sync() } }
+  $("none").onclick = () => { if (!state.busy) { state.selected.clear(); sync() } }
+  $("scale").onclick = (e) => {
+    const v = e.target.dataset.v
+    if (!v) return
+    state.scale = Number(v)
+    for (const b of $("scale").children) b.classList.toggle("on", b === e.target)
+  }
+  $("layers").onclick = (e) => {
+    const v = e.target.dataset.v
+    if (!v) return
+    state.nested = v === "nested"
+    for (const b of $("layers").children) b.classList.toggle("on", b === e.target)
+  }
+  $("choose").onclick = async () => {
+    const { path } = await (await api("/api/choose-folder", { method: "POST" })).json()
+    if (!path) return
+    state.outDir = path.replace(/[\\/]$/, "")
+    savePref("outDir", state.outDir)
+    $("folder").textContent = shortPath(state.outDir)
+    $("folder").title = state.outDir
+  }
+
+  // Keeps the background server alive while this window is open.
+  setInterval(() => fetch("/api/ping").catch(() => {}), 30_000)
+  load()
+</script>
+</body>
+</html>
